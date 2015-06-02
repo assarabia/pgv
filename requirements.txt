@@ -1,0 +1,4 @@
+dpkt==1.8.6
+nodebox-opengl==1.6.1
+pcapy==0.10.8
+pyglet==1.2.2
