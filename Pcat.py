@@ -74,6 +74,11 @@ def reflect(canvas, mvp):
         if e.active:
             return
 
+        if 'ffffffff' in mvp.dst.encode("hex"):
+            burst = True
+        else:
+            burst = False
+
         caption=[]
         caption.append(Text("MPSA  Outer src-dst : " + mvp['mpsa']['src'] + ' - ' + mvp['mpsa']['src'],
                             font=t_font, fontsize=t_fontsize, fill=t_color))
@@ -89,7 +94,7 @@ def reflect(canvas, mvp):
         systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
         systems[nd.id].append(ParticleExt(ns.x, ns.y,
                                           deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          imgs=p_imgs, img_fout=p_img_fout,
+                                          imgs=p_imgs, img_fout=p_img_fout, burst=burst,
                                           index=canvas.frame%len(p_imgs)))
 
 def reflect_test(canvas, mvp):
@@ -100,16 +105,20 @@ def reflect_test(canvas, mvp):
         if e.active:
             return
 
+        if 'ffffffff' in mvp.dst.encode("hex"):
+            burst = True
+        else:
+            burst = False
+
         caption=[]
-        caption.append(Text("Inner src-dst : AA:AA:AA:AA:AA:AA - BB:BB:BB:BB:BB:BB",
+        caption.append(Text("Inner src-dst : " + mvp.src.encode("hex") + ' - ' + mvp.dst.encode("hex"),
                             font=t_font, fontsize=t_fontsize, fill=t_color))
 
         e.activate(p_interval, caption=caption)
-        #ns.fill= nd.fill=n_color2
         systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
         systems[nd.id].append(ParticleExt(ns.x, ns.y,
                                           deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          imgs=p_imgs, img_fout=p_img_fout,
+                                          imgs=p_imgs, img_fout=p_img_fout, burst=burst,
                                           index=canvas.frame%len(p_imgs)))
 
 dragged=None

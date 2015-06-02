@@ -166,7 +166,7 @@ class GraphExt(Graph):
 
 class ParticleExt(Particle):
     def __init__(self, x, y, deadpoint=None, deadradius=0,
-                 imgs=None, index=0, img_fout =None, shadow=True,
+                 imgs=None, index=0, img_fout=None, shadow=True, burst=False,
                  velocity=(0.0,0.0), mass=10.0, radius=10.0, life=None, fixed=False):
         Particle.__init__(self, x, y, velocity, mass, radius, life, fixed)
         self.deadpoint = deadpoint
@@ -176,6 +176,9 @@ class ParticleExt(Particle):
         self.imgs = imgs
         self.index = index
         self.draw_cnt = 0
+
+        ''' burst image when framing out ? '''
+        self.burst = burst
 
         ''' image which is displayed when particle is framing out'''
         self.img_fout = img_fout
@@ -196,10 +199,19 @@ class ParticleExt(Particle):
         y_dist = abs(self.y-self.deadpoint[1])
 
         if x_dist < self.deadradius*2 or y_dist < self.deadradius*2:
+            ''' framing out '''
             image(self.img_fout, x=self.x, y=self.y)
             if self.enable_shadow:
                 image(self.img_fout_shadow, x=self.x, y=self.y-10, alpha=0.5)
+
+            if self.burst:
+                for i in range(3):
+                    rotate(10)
+                    image(self.img_fout, x=self.x, y=self.y)
+                    if self.enable_shadow:
+                        image(self.img_fout_shadow, x=self.x, y=self.y-10, alpha=0.5)
         else:
+            ''' general '''
             image(self.imgs[self.index], x=self.x, y=self.y)
             if self.enable_shadow:
                 image(self.imgs_shadow[self.index], x=self.x, y=self.y-10, alpha=0.5)
