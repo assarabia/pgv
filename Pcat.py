@@ -12,11 +12,13 @@ node_ids = ['2001:db8:10::30',
             '2001:aaaa:10::10',
             '2001:bbbb:10::20']
 
-canvas_w = 800                      # canvas width
-canvas_h = 600                      # canvas height
-center_w = canvas_w/2
-center_h = canvas_h/2
+if fullscreen:
+    canvas.fullscreen = True
+else:
+    canvas.size = 800, 600
+
 bg_color = (0.8,0.8,0.8,0.8)        # background color
+bg_image = Image("IMG_Pcat/frame.png", width=canvas.width, height=canvas.height)
 
 ''' text setting '''
 t_color  = (0.1, 0.1, 0.1, 0.9)  # text color
@@ -43,7 +45,7 @@ g.layout.repulsion = 15             # Repulsion radius.
 systems = {}
 
 for i in node_ids:
-    g.add_node(id=i, center_w=center_w, center_h=center_h,
+    g.add_node(id=i, center_w=canvas.width/2, center_h=canvas.height/2,
                radius=n_radius,
                stroke=bg_color, fill=n_color1, text=t_color)
     systems[i] = SystemExt(gravity=(0.0,0.0), drag=1.0)
@@ -126,9 +128,10 @@ dragged=None
 def draw(canvas):    
     canvas.clear()
     background(bg_color)
+    image(bg_image, x=0, y=0)
 
     ''' center ellipse '''
-    translate(center_w, center_h)
+    translate(canvas.width/2, canvas.height/2)
     ew = eh = 0
     for i in node_ids:
         n = g.node(i)
@@ -159,8 +162,8 @@ def draw(canvas):
         s.update(limit=20)
 
     ''' make it draggable '''
-    dx = canvas.mouse.x - center_w
-    dy = canvas.mouse.y - center_h
+    dx = canvas.mouse.x - canvas.width/2
+    dy = canvas.mouse.y - canvas.height/2
     global dragged
     if canvas.mouse.pressed and not dragged:
         dragged = g.node_at(dx, dy)
@@ -176,7 +179,4 @@ else:
     logger = PcapMonitor(interface, mpsa_vxlan_filter)
 logger.start()
 
-canvas.size = canvas_w, canvas_h
-if fullscreen:
-    canvas.fullscreen = True
 canvas.run(draw)
