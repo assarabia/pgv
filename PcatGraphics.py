@@ -1,6 +1,7 @@
 from nodebox.graphics import *
 from nodebox.graphics.physics import Node, Edge, Graph, Emitter, System, Particle, Vector
 import time
+from math import atan, degrees
 
 class NodeExt(Node):
     def __init__(self, id="", center_w=0, center_h=0, radius=5, img=None, **kwargs):
@@ -171,6 +172,13 @@ class ParticleExt(Particle):
         Particle.__init__(self, x, y, velocity, mass, radius, life, fixed)
         self.deadpoint = deadpoint
         self.deadradius = deadradius
+        self.tempdeath = False
+
+        ''' rotate angle for cat image '''
+        if deadpoint[0]-x != 0:
+            self.angle = degrees(atan((deadpoint[1]-y)/(deadpoint[0]-x)))
+        else:
+            self.angle = 0
 
         ''' images of particle '''
         self.imgs = imgs
@@ -195,21 +203,24 @@ class ParticleExt(Particle):
             self.img_fout_shadow = blur(shadow, amount=3, kernel=5)
 
     def draw(self, **kwargs):
-        x_dist = abs(self.x-self.deadpoint[0])
-        y_dist = abs(self.y-self.deadpoint[1])
-
-        if x_dist < self.deadradius*2 or y_dist < self.deadradius*2:
+        if self.tempdeath is True:
             ''' framing out '''
-            image(self.img_fout, x=self.x, y=self.y)
-            if self.enable_shadow:
-                image(self.img_fout_shadow, x=self.x, y=self.y-10, alpha=0.5)
+            translate(self.x, self.y)
+            rotate(self.angle)
 
+            image(self.img_fout)
+            if self.enable_shadow:
+                image(self.img_fout_shadow, y=-10, alpha=0.5)
             if self.burst:
                 for i in range(3):
-                    rotate(10)
-                    image(self.img_fout, x=self.x, y=self.y)
+                    rotate(15)
+                    image(self.img_fout)
                     if self.enable_shadow:
-                        image(self.img_fout_shadow, x=self.x, y=self.y-10, alpha=0.5)
+                        image(self.img_fout_shadow, y=-10, alpha=0.5)
+                rotate(-15*3)
+
+            rotate(-self.angle)
+            translate(-self.x, -self.y)
         else:
             ''' general '''
             image(self.imgs[self.index], x=self.x, y=self.y)
@@ -222,6 +233,17 @@ class ParticleExt(Particle):
                 self.index += 1
                 if self.index == len(self.imgs):
                     self.index = 0
+
+    def isDead(self):
+        x_dist = abs(self.x-self.deadpoint[0])
+        y_dist = abs(self.y-self.deadpoint[1])
+        dist_pow = x_dist*x_dist + y_dist*y_dist - self.deadradius*self.deadradius
+
+        if dist_pow > 0 and self.tempdeath is True:
+            return True
+        elif dist_pow < 0:
+            self.tempdeath = True
+        return False        
 
 class EmitterExt(Emitter):
     def __init__(self, x, y, angle=0, strength=1.0, spread=10, id=''):
@@ -269,9 +291,9 @@ class SystemExt(System):
                 self.limit(p, limit)
                 p.x += p.force.x
                 p.y += p.force.y
-            if p.deadpoint:
-                if abs(p.x-p.deadpoint[0]) < p.deadradius or abs(p.y-p.deadpoint[1]) < p.deadradius:
-                    p.dead = True
+            if p.isDead():
+                p.dead = True
+                self.particles.remove(p)
             if p.life:
                 # Apply lifespan.                                                                                                                                          
                 p._age += 1

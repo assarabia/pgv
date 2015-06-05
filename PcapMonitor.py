@@ -16,7 +16,7 @@ class PcapMonitor(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.interface = interface
         self.filter = filter
-        self.queue = multiprocessing.Queue()
+        self.queue = multiprocessing.Queue(10000)
         #self.daemon = True
 
     def run(self):
@@ -24,6 +24,10 @@ class PcapMonitor(multiprocessing.Process):
         p.loop(-1, self.handle_packet)
 
     def handle_packet (self, header, data):
+        if self.queue.full():
+            while self.queue.empty() is not True:
+                self.queue.get()
+            print 'pcap queue is full. cleared'
         if self.filter:
             fp = self.filter(data)
             if fp:
@@ -59,8 +63,8 @@ def mpsa_vxlan_filter(buf):
             vxlan = {'src' : socket.inet_ntop(socket.AF_INET, esp.data[12:16]),
                      'dst' : socket.inet_ntop(socket.AF_INET, esp.data[16:20]),
                      'vni' : esp.data[32:35].encode("hex")}
-            inner = {'src' : esp.data[36:42].encode("hex"),
-                     'dst' : esp.data[42:48].encode("hex")}
+            inner = {'dst' : esp.data[36:42].encode("hex"),
+                     'src' : esp.data[42:48].encode("hex")}
 
             return {'mpsa'  : mpsa,
                     'vxlan' : vxlan,

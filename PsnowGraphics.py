@@ -169,16 +169,33 @@ class Obstacle(Particle):
         pass
 
 class ParticleExt(Particle):
-    def __init__(self, x, y, deadpoint=None, deadradius=0,
-                 img=None, angle=0, img_fout =None, shadow=True, burst=False,
-                 velocity=(0.0,0.0), mass=10.0, radius=10.0, life=None, fixed=False):
+    def __init__(self, x, y, velocity=(0.0,0.0), mass=10.0, radius=10.0, life=None, fixed=False,
+                 color=None):
         Particle.__init__(self, x, y, velocity, mass, radius, life, fixed)
+        self.color=color
+
+    def draw(self, **kwargs):
+        Particle.draw(self, fill=self.color, **kwargs)
+
+class ParticleImg(Particle):
+    def __init__(self, x, y, velocity=(0.0,0.0), mass=10.0, radius=10.0, life=None, fixed=False,
+                 img=None, angle=0, img_fout =None,
+                 system_ns=None, system_ns_col=None,
+                 deadpoint=None, deadradius=0,
+                 shadow=True, burst=False):
+        Particle.__init__(self, x, y, velocity, mass, radius, life, fixed)
+        self.startpoint = (x, y)
         self.deadpoint = deadpoint
         self.deadradius = deadradius
+        self.tempdeath = False
 
         ''' images of particle '''
         self.img = img
         self.angle = angle
+
+        ''' caption '''
+        self.system_ns = system_ns
+        self.system_ns_col = system_ns_col
 
         ''' burst image when framing out ? '''
         self.burst = burst
@@ -190,19 +207,37 @@ class ParticleExt(Particle):
             self.img_shadow = (blur(shadow, amount=3, kernel=5))
 
     def draw(self, **kwargs):
-        x_dist = abs(self.x-self.deadpoint[0])
-        y_dist = abs(self.y-self.deadpoint[1])
-
-        if x_dist < self.deadradius*2 or y_dist < self.deadradius*2:
+        if self.tempdeath is True:
             ''' framing out '''
         else:
             ''' general '''
             translate(self.x, self.y)
             rotate(self.angle)
+
             image(self.img)
             if self.enable_shadow:
                 image(self.img_shadow, y=-20, alpha=0.5)
-            reset()
+
+            rotate(-self.angle)
+            translate(-self.x, -self.y)
+
+            self.system_ns.append(ParticleExt(self.x, self.y, life=60, color=self.system_ns_col))
+
+            #p = BezierPath()
+            #p.moveto(self.startpoint[0], self.startpoint[1])
+            #p.lineto(self.x+random(-5, 5), self.y+random(-5, 5))
+            #drawpath(p, fill=None, stroke=self.footprint_stroke)
+
+    def isDead(self):
+        x_dist = abs(self.x-self.deadpoint[0])
+        y_dist = abs(self.y-self.deadpoint[1])
+        dist_pow = x_dist*x_dist + y_dist*y_dist - self.deadradius*self.deadradius
+
+        if dist_pow > 0 and self.tempdeath is True:
+            return True
+        elif dist_pow < 0:
+            self.tempdeath = True
+        return False        
 
 class EmitterExt(Emitter):
     def __init__(self, x, y, angle=0, strength=1.0, spread=10, id=''):
@@ -250,9 +285,9 @@ class SystemExt(System):
                 self.limit(p, limit)
                 p.x += p.force.x
                 p.y += p.force.y
-            if p.deadpoint:
-                if abs(p.x-p.deadpoint[0]) < p.deadradius or abs(p.y-p.deadpoint[1]) < p.deadradius:
-                    p.dead = True
+            if isinstance(p, ParticleImg) and p.isDead():
+                p.dead = True
+                self.particles.remove(p)
             if p.life:
                 # Apply lifespan.                                                                                                                                          
                 p._age += 1

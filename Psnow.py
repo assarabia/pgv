@@ -7,11 +7,17 @@ from math import atan, degrees
 
 development = True
 interface   = 'en1'
-fullscreen  = True
+fullscreen  = False
 
-node_ids = ['2001:db8:10::30',
-            '2001:aaaa:10::10',
-            '2001:bbbb:10::20']
+'''
+'src can be'          'dst can be'
+'2001:1111:10::10' -> '2001:aaaa:10::10'
+'2001:2222:10::20' -> '2001:bbbb:10::20'
+'2001:3333:10::30' -> '2001:cccc:10::30'
+'''
+node_map = {'2001:1111:10::10' : '2001:aaaa:10::10',
+            '2001:2222:10::20' : '2001:bbbb:10::20', 
+            '2001:3333:10::30' : '2001:cccc:10::30'}
 
 if fullscreen:
     canvas.fullscreen = True
@@ -46,32 +52,36 @@ systems = {}
 systems['global'] = System(gravity=(0, 1.0), drag=0.01)
 e = Emitter(x=-canvas.width/2+50, y=canvas.height/2-50, angle=-40, strength=5.0, spread=-10)
 for i in range(100):
-    e.append(Particle(0, 0, mass=random(5,25), radius=MASS, life=random(50,200)))
+    e.append(ParticleExt(0, 0, mass=random(5,25), radius=MASS, life=random(50,200), color=n_color4))
 systems['global'].append(e)
 obstacle = Obstacle(0, 0, mass=70, radius=70, fixed=True)
 systems['global'].append(obstacle)
 systems['global'].force(6, source=obstacle) # Repulsive force from this particle to all others.
 
-for i in node_ids:
+for i in node_map.values():
     g.add_node(id=i, center_w=canvas.width/2, center_h=canvas.height/2,
                radius=n_radius,
-               stroke=bg_color, fill=n_color2, text=t_color)
-    systems[i] = SystemExt(gravity=(0.0,0.0), drag=1.0)
+               stroke=bg_color, fill=n_color1, text=t_color)
 
-for i in node_ids:
-    for j in node_ids:
+for i in node_map.values():
+    for j in node_map.values():
         if i != j:
-            g.add_edge(i, j, stroke=n_color3, visible=False)
+            g.add_edge(i, j, stroke=bg_color, visible=False)
+            systems[i+j] = SystemExt(gravity=(0.0,0.0), drag=1.0)
 
 ''' particle setting '''
 p_gravity    = 200      # lower is stronger
-p_interval   = 2.0      # if particle is emitted, next emit is after p_interval
+p_interval   = 5.0      # if particle is emitted, next emit is after p_interval
 p_deadradius = 20       # particle will be dead if it gets into dead distance to node.
-p_img = Image("IMG_Psnow/train.png", width=100, height=50)
+p_img = blur(Image("IMG_Psnow/train.png", width=100, height=50), amount=3, kernel=2)
 
 def reflect(canvas, mvp):
-    ns = g.node(mvp['mpsa']['src'])
+    if node_map.has_key(mvp['mpsa']['src']) == False:
+        return
+
+    ns = g.node(node_map[mvp['mpsa']['src']])
     nd = g.node(mvp['mpsa']['dst'])
+
     if ns and nd:
         e = g.edge(ns.id, nd.id)
         if e.active:
@@ -82,31 +92,24 @@ def reflect(canvas, mvp):
         else:
             burst = False
 
-        caption=[]
-        caption.append(Text("MPSA  Outer src-dst : " + mvp['mpsa']['src'] + ' - ' + mvp['mpsa']['src'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("VXLAN Outer src-dst : " + mvp['vxlan']['src'] + ' - ' + mvp['vxlan']['src'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("VXLAN vni     : " + mvp['vxlan']['vni'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("Inner src-dst : " + mvp['inner']['src'] + ' - ' + mvp['inner']['dst'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
+        caption=mvp['inner']['src'] + ' - ' + mvp['inner']['dst']
 
         angle=0
         if nd.x-ns.x != 0:
-            angle = atan((nd.y-ns.y)/(nd.x-ns.x))
+            angle = degrees(atan((nd.y-ns.y)/(nd.x-ns.x)))
 
         e.activate(p_interval, caption=caption)
-        #ns.fill= nd.fill=n_color2
-        systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[nd.id].append(ParticleExt(ns.x, ns.y,
-                                          deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          img=p_img, angle=angle))
+        systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
+        systems[ns.id+nd.id].append(ParticleImg(ns.x, ns.y,
+                                                system_ns=systems[ns.id], system_ns_col=n_color4,
+                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                img=p_img, angle=angle))
 
 def reflect_test(canvas, mvp):
     if type(mvp) == dpkt.ethernet.Ethernet:
-        ns = g.node(node_ids[0])
-        nd = g.node(node_ids[2])    
+        ns = g.node('2001:aaaa:10::10')
+        nd = g.node('2001:bbbb:10::20')
+
         e = g.edge(ns.id, nd.id)
         if e.active:
             return
@@ -116,20 +119,17 @@ def reflect_test(canvas, mvp):
         else:
             burst = False
 
-        caption=[]
-        caption.append(Text("Inner src-dst : " + mvp.src.encode("hex") + ' - ' + mvp.dst.encode("hex"),
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-
+        caption=mvp.src.encode("hex") + ' - ' + mvp.dst.encode("hex")
         angle=0
         if nd.x-ns.x != 0:
             angle = degrees(atan((nd.y-ns.y)/(nd.x-ns.x)))
 
-        e.activate(p_interval, caption=caption)
-        #ns.fill= nd.fill=n_color2
-        systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[nd.id].append(ParticleExt(ns.x, ns.y,
-                                          deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          img=p_img, angle=angle))
+        e.activate(p_interval)
+        systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
+        systems[ns.id+nd.id].append(ParticleImg(ns.x, ns.y,
+                                                system_ns=systems[nd.id+ns.id], system_ns_col=n_color4,
+                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                img=p_img, angle=angle))
 
 dragged=None
 
@@ -151,7 +151,7 @@ def draw(canvas):
     ''' draw should be done before update to draw framing out image '''
     g.draw(weighted=0.5, directed=True)
     for s in systems.values():
-        s.draw(fill=n_color4)
+        s.draw()
 
     g.update(iterations=10)
     if canvas.frame % 10 == 0:

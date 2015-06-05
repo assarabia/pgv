@@ -6,11 +6,17 @@ from PcapMonitor import *
 
 development = False
 interface   = 'en0'
-fullscreen  = False
+fullscreen  = True
 
-node_ids = ['2001:db8:10::30',
-            '2001:aaaa:10::10',
-            '2001:bbbb:10::20']
+'''
+'src can be'          'dst can be'
+'2001:1111:10::10' -> '2001:aaaa:10::10'
+'2001:2222:10::20' -> '2001:bbbb:10::20'
+'2001:3333:10::30' -> '2001:cccc:10::30'
+'''
+node_map = {'2001:1111:10::10' : '2001:aaaa:10::10',
+            '2001:2222:10::20' : '2001:bbbb:10::20', 
+            '2001:3333:10::30' : '2001:cccc:10::30'}
 
 if fullscreen:
     canvas.fullscreen = True
@@ -44,16 +50,16 @@ g.layout.repulsion = 15             # Repulsion radius.
 ''' system setting '''
 systems = {}
 
-for i in node_ids:
+for i in node_map.values():
     g.add_node(id=i, center_w=canvas.width/2, center_h=canvas.height/2,
                radius=n_radius,
                stroke=bg_color, fill=n_color1, text=t_color)
-    systems[i] = SystemExt(gravity=(0.0,0.0), drag=1.0)
 
-for i in node_ids:
-    for j in node_ids:
+for i in node_map.values():
+    for j in node_map.values():
         if i != j:
             g.add_edge(i, j, stroke=bg_color, visible=False)
+            systems[i+j] = SystemExt(gravity=(0.0,0.0), drag=1.0)
 
 ''' particle setting '''
 p_gravity    = 200      # lower is stronger
@@ -69,14 +75,18 @@ p_imgs = [
 p_img_fout = Image("IMG_Pcat/cat1.png", width=128, height=128)
 
 def reflect(canvas, mvp):
-    ns = g.node(mvp['mpsa']['src'])
+    if node_map.has_key(mvp['mpsa']['src']) == False:
+        return
+
+    ns = g.node(node_map[mvp['mpsa']['src']])
     nd = g.node(mvp['mpsa']['dst'])
+
     if ns and nd:
         e = g.edge(ns.id, nd.id)
         if e.active:
             return
 
-        if 'ffffffff' in mvp.dst.encode("hex"):
+        if 'ffffffff' in mvp['inner']['dst']:
             burst = True
         else:
             burst = False
@@ -93,16 +103,18 @@ def reflect(canvas, mvp):
 
         e.activate(p_interval, caption=caption)
         #ns.fill= nd.fill=n_color2
-        systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[nd.id].append(ParticleExt(ns.x, ns.y,
-                                          deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          imgs=p_imgs, img_fout=p_img_fout, burst=burst,
-                                          index=canvas.frame%len(p_imgs)))
+        systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
+        systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                imgs=p_imgs, img_fout=p_img_fout,
+                                                burst=burst,
+                                                index=canvas.frame%len(p_imgs)))
 
 def reflect_test(canvas, mvp):
     if type(mvp) == dpkt.ethernet.Ethernet:
-        ns = g.node(node_ids[0])
-        nd = g.node(node_ids[2])    
+        ns = g.node('2001:aaaa:10::10')
+        nd = g.node('2001:bbbb:10::20')
+
         e = g.edge(ns.id, nd.id)
         if e.active:
             return
@@ -117,11 +129,12 @@ def reflect_test(canvas, mvp):
                             font=t_font, fontsize=t_fontsize, fill=t_color))
 
         e.activate(p_interval, caption=caption)
-        systems[nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[nd.id].append(ParticleExt(ns.x, ns.y,
-                                          deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                          imgs=p_imgs, img_fout=p_img_fout, burst=burst,
-                                          index=canvas.frame%len(p_imgs)))
+        systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
+        systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                imgs=p_imgs, img_fout=p_img_fout,
+                                                burst=burst,
+                                                index=canvas.frame%len(p_imgs)))
 
 dragged=None
 
@@ -133,12 +146,12 @@ def draw(canvas):
     ''' center ellipse '''
     translate(canvas.width/2, canvas.height/2)
     ew = eh = 0
-    for i in node_ids:
+    for i in node_map.values():
         n = g.node(i)
         ew += n.x
         eh += n.y
-    ew /= len(node_ids)
-    eh /= len(node_ids)
+    ew /= len(node_map.values())
+    eh /= len(node_map.values())
     ellipse(ew, eh, c_radius, c_radius, stroke=bg_color, fill=n_color0)
     text(t_center, ew, eh)
 
