@@ -29,21 +29,21 @@ bg_image = Image("IMG_Pcat/frame.png", width=canvas.width, height=canvas.height)
 ''' text setting '''
 t_color  = (0.1, 0.1, 0.1, 0.9)  # text color
 t_font   = "Droid Serif"
-t_fontsize = 10
-t_center = Text("MPSA isle", fontname=t_font, fontweight=BOLD, fill=t_color)
+t_fontsize = 15
+t_center = Text("MPSA isle", fontname=t_font, fontweight=BOLD, fill=t_color, fontsize=t_fontsize)
 
 ''' node setting '''
 n_color0 = (0.25, 0.75, 0.25, 0.8)  # color for node (green)
 n_color1 = (0.75, 0.25, 0.25, 0.7)  # color for node (red)
 n_color2 = (0.50, 0.75, 0.75, 0.8)  # color for node (blue)
 s_color  = (0.1,  0.1,  0.1,  0.2)  # color for node (gray)
-n_radius = 120                      # node radius
+n_radius = 180                      # node radius
 c_radius = 240                      # center node raidus
 
 ''' graph setting '''
 g = GraphExt()
 g.prune(depth=0)                    # Remove orphaned nodes with no connections.
-g.distance         = 80             # Overall spacing between nodes.
+g.distance         = 85             # Overall spacing between nodes.
 g.layout.force     = 0.01           # Strength of the attractive & repulsive force.
 g.layout.repulsion = 15             # Repulsion radius.
 
@@ -53,7 +53,7 @@ systems = {}
 for i in node_map.values():
     g.add_node(id=i, center_w=canvas.width/2, center_h=canvas.height/2,
                radius=n_radius,
-               stroke=bg_color, fill=n_color1, text=t_color)
+               stroke=bg_color, fill=n_color1, text=t_color, fontsize=t_fontsize)
 
 for i in node_map.values():
     for j in node_map.values():
@@ -63,16 +63,23 @@ for i in node_map.values():
 
 ''' particle setting '''
 p_gravity    = 200      # lower is stronger
-p_interval   = 2.0      # if particle is emitted, next emit is after p_interval
+p_interval   = 4.0      # if particle is emitted, next emit is after p_interval
 p_deadradius = 20       # particle will be dead if it gets into dead distance to node.
-p_imgs = [
-    Image("IMG_Pcat/f0s.png"),
-    Image("IMG_Pcat/f1s.png"),
-    Image("IMG_Pcat/f2s.png"),
-    Image("IMG_Pcat/f3s.png"),
-    Image("IMG_Pcat/f4s.png")
+p_black_imgs = [
+    Image("IMG_Pcat/black/f0s.png"),
+    Image("IMG_Pcat/black/f1s.png"),
+    Image("IMG_Pcat/black/f2s.png"),
+    Image("IMG_Pcat/black/f3s.png"),
+    Image("IMG_Pcat/black/f4s.png")
     ]
-p_img_fout = Image("IMG_Pcat/cat1.png", width=128, height=128)
+p_black_img_fout = Image("IMG_Pcat/cat1.png", width=150, height=150)
+p_yellow_imgs = [
+    Image("IMG_Pcat/blue/f0s.png"),
+    Image("IMG_Pcat/blue/f1s.png"),
+    Image("IMG_Pcat/blue/f2s.png"),
+    Image("IMG_Pcat/blue/f4s.png")
+    ]
+p_yellow_img_fout = Image("IMG_Pcat/blue/cat1.png", width=150, height=150)
 
 def reflect(canvas, mvp):
     if node_map.has_key(mvp['mpsa']['src']) == False:
@@ -92,23 +99,30 @@ def reflect(canvas, mvp):
             burst = False
 
         caption=[]
-        caption.append(Text("MPSA  Outer src-dst : " + mvp['mpsa']['src'] + ' - ' + mvp['mpsa']['src'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("VXLAN Outer src-dst : " + mvp['vxlan']['src'] + ' - ' + mvp['vxlan']['src'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("VXLAN vni     : " + mvp['vxlan']['vni'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
-        caption.append(Text("Inner src-dst : " + mvp['inner']['src'] + ' - ' + mvp['inner']['dst'],
-                            font=t_font, fontsize=t_fontsize, fill=t_color))
+        #caption.append(Text("MPSA  Outer src-dst : " + mvp['mpsa']['src'] + ' - ' + mvp['mpsa']['src'],
+        #                    font=t_font, fontsize=t_fontsize, fill=t_color))
+        #caption.append(Text("VXLAN Outer src-dst : " + mvp['vxlan']['src'] + ' - ' + mvp['vxlan']['src'],
+        #                    font=t_font, fontsize=t_fontsize, fill=t_color))
+        #caption.append(Text("VXLAN vni     : " + mvp['vxlan']['vni'],
+        #                    font=t_font, fontsize=t_fontsize, fill=t_color))
+        #caption.append(Text("Inner src-dst : " + mvp['inner']['src'] + ' - ' + mvp['inner']['dst'],
+        #                    font=t_font, fontsize=t_fontsize, fill=t_color))
 
         e.activate(p_interval, caption=caption)
-        #ns.fill= nd.fill=n_color2
         systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
-                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                                imgs=p_imgs, img_fout=p_img_fout,
-                                                burst=burst,
-                                                index=canvas.frame%len(p_imgs)))
+
+        if 'fff' in mvp['vxlan']['vni']:
+            systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                    deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                    imgs=p_black_imgs, img_fout=p_black_img_fout,
+                                                    burst=burst,
+                                                    index=canvas.frame%len(p_black_imgs)))
+        if '01' in mvp['vxlan']['vni']:
+            systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                    deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                    imgs=p_yellow_imgs, img_fout=p_yellow_img_fout,
+                                                    burst=burst,
+                                                    index=canvas.frame%len(p_yellow_imgs)))
 
 def reflect_test(canvas, mvp):
     if type(mvp) == dpkt.ethernet.Ethernet:
@@ -130,11 +144,18 @@ def reflect_test(canvas, mvp):
 
         e.activate(p_interval, caption=caption)
         systems[ns.id+nd.id].setGravity(((nd.x-ns.x)/p_gravity, -(nd.y-ns.y)/p_gravity))
-        systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
-                                                deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                                imgs=p_imgs, img_fout=p_img_fout,
-                                                burst=burst,
-                                                index=canvas.frame%len(p_imgs)))
+        if 'ffffffff' in mvp.dst.encode("hex"):
+            systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                    deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                    imgs=p_black_imgs, img_fout=p_black_img_fout,
+                                                    burst=burst,
+                                                    index=canvas.frame%len(p_black_imgs)))
+        else:
+            systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
+                                                    deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
+                                                    imgs=p_yellow_imgs, img_fout=p_yellow_img_fout,
+                                                    burst=burst,
+                                                    index=canvas.frame%len(p_yellow_imgs)))
 
 dragged=None
 

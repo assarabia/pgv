@@ -22,7 +22,7 @@ class NodeExt(Node):
 
         # Draw the node text label.
         if self.text:
-            self.text.draw(self.x, self.y) 
+            self.text.draw(self.x-self.radius/2+15, self.y) 
 
     def __draw_ellipse(self, weighted=False):
         # Draw the node weight as a shadow (based on node betweenness centrality).
@@ -77,7 +77,11 @@ class EdgeExt(Edge):
 
         if self.text:
             x = (self.node2.x + self.node1.x) / 2
+            if x < 0: x-=80
+            else: x+=80
             y = (self.node2.y + self.node1.y) / 2
+            if y < 0: y-=80
+            else: y+=80
             for t in self.text:
                 t.draw(x, y)
                 y = y + t.fontsize * 2

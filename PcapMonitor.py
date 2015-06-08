@@ -16,7 +16,7 @@ class PcapMonitor(multiprocessing.Process):
         multiprocessing.Process.__init__(self)
         self.interface = interface
         self.filter = filter
-        self.queue = multiprocessing.Queue(10000)
+        self.queue = multiprocessing.Queue(1000)
         #self.daemon = True
 
     def run(self):
