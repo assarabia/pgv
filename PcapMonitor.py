@@ -31,11 +31,11 @@ class PcapMonitor(multiprocessing.Process):
         if self.filter:
             fp = self.filter(data)
             if fp:
-                self.queue.put(fp)
+                self.queue.put_nowait(fp)
         else:
             eth = dpkt.ethernet.Ethernet(data)
             if eth:
-                self.queue.put(eth)
+                self.queue.put_nowait(eth)
 
     def get_packet (self):
         try:

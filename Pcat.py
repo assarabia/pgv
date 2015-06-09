@@ -63,7 +63,7 @@ for i in node_map.values():
 
 ''' particle setting '''
 p_gravity    = 200      # lower is stronger
-p_interval   = 4.0      # if particle is emitted, next emit is after p_interval
+p_interval   = 2.0      # if particle is emitted, next emit is after p_interval
 p_deadradius = 20       # particle will be dead if it gets into dead distance to node.
 p_black_imgs = [
     Image("IMG_Pcat/black/f0s.png"),
@@ -73,13 +73,13 @@ p_black_imgs = [
     Image("IMG_Pcat/black/f4s.png")
     ]
 p_black_img_fout = Image("IMG_Pcat/cat1.png", width=150, height=150)
-p_yellow_imgs = [
+p_blue_imgs = [
     Image("IMG_Pcat/blue/f0s.png"),
     Image("IMG_Pcat/blue/f1s.png"),
     Image("IMG_Pcat/blue/f2s.png"),
     Image("IMG_Pcat/blue/f4s.png")
     ]
-p_yellow_img_fout = Image("IMG_Pcat/blue/cat1.png", width=150, height=150)
+p_blue_img_fout = Image("IMG_Pcat/blue/cat1.png", width=150, height=150)
 
 def reflect(canvas, mvp):
     if node_map.has_key(mvp['mpsa']['src']) == False:
@@ -120,9 +120,9 @@ def reflect(canvas, mvp):
         if '01' in mvp['vxlan']['vni']:
             systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
                                                     deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                                    imgs=p_yellow_imgs, img_fout=p_yellow_img_fout,
+                                                    imgs=p_blue_imgs, img_fout=p_blue_img_fout,
                                                     burst=burst,
-                                                    index=canvas.frame%len(p_yellow_imgs)))
+                                                    index=canvas.frame%len(p_blue_imgs)))
 
 def reflect_test(canvas, mvp):
     if type(mvp) == dpkt.ethernet.Ethernet:
@@ -153,9 +153,9 @@ def reflect_test(canvas, mvp):
         else:
             systems[ns.id+nd.id].append(ParticleExt(ns.x, ns.y,
                                                     deadpoint=(nd.x, nd.y), deadradius=p_deadradius,
-                                                    imgs=p_yellow_imgs, img_fout=p_yellow_img_fout,
+                                                    imgs=p_blue_imgs, img_fout=p_blue_img_fout,
                                                     burst=burst,
-                                                    index=canvas.frame%len(p_yellow_imgs)))
+                                                    index=canvas.frame%len(p_blue_imgs)))
 
 dragged=None
 
